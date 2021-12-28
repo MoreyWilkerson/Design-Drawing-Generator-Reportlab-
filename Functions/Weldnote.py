@@ -14,7 +14,6 @@ def lineends(c,x1,y1,x2,y2,n):#triangles, Bro
          ffs = -1
      h=ffs * .0625*inch #how far back to go
      b=.0625*inch/4 #sides of arrow 
-     #OHHH MASTER, WHAT IF ITS VERTICAL? :(( SLOPE IS UNDEFINDED
      
      if (x1-x2)== 0:
          slope = 90 #this should work dirty girl
