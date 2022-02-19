@@ -1,0 +1,309 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Jun 17 13:55:33 2021
+
+@author: Morey
+"""
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import inch
+import numpy as np
+import math
+
+def fracking(x):
+  xft=math.floor(x/12) #how many feet?
+  xin=x-(xft*12)
+  xin = round(.0625* round(float(xin)/.0625),4) #changes to a normal decimal 
+  xr=  math.floor(xin)
+  base =16
+  xfr=(xin-xr)*16
+  for y in range(3):
+      if xfr % 2 == 0:
+          xfr = xfr/2
+          base = base/2
+      else : break
+  if xfr == 0:
+      x = str(xft)+"' " + str(int(xr))+'"'
+      return x
+  else :
+      x = str(xft)+"' " + str(int(xr)) +" " +str(int(xfr))+"/"+str(int(base))+'"'
+      return x
+
+#triangles, Bro +
+
+def lineends(c,x1,y1,x2,y2):
+  
+     h=.0625*inch #how far back to go
+     b=.0625*inch/4
+     #OHHH MASTER, WHAT IF ITS VERTICAL? :(( SLOPE IS UNDEFINDED
+     if (x1-x2)== 0:
+         slope = 90
+     else :
+         slope =(y1-y2)/(x1-x2)
+    
+     hyp = math.sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2))
+     theta=math.atan(slope)   
+     if hyp <= h*2:
+         h = -h
+     #make new axis     
+     p2x=-h*math.cos(theta)+b*math.sin(theta)
+     p2y=-h*math.sin(theta)-b*math.cos(theta)
+     p3x=-h*math.cos(theta)-b*math.sin(theta)
+     p3y=-h*math.sin(theta)+b*math.cos(theta) 
+     if slope == 90:
+         p2x = b
+         p3x = -b
+         p2y = -h
+         p3y = -h
+     p = c.beginPath()
+     p.moveTo(x1,y1)
+     p.lineTo(x1-p2x,y1-p2y)
+     p.lineTo(x1-p3x,y1-p3y)
+     p.lineTo(x1,y1)
+     p.close()
+     c.drawPath(p,fill=1)
+     p = c.beginPath()
+     p.moveTo(x2,y2)
+     p.lineTo(x2+p2x,y2+p2y)
+     p.lineTo(x2+p3x,y2+p3y)
+     p.lineTo(x2,y2)
+     p.close()
+     c.drawPath(p,fill=1)   
+     
+   
+def Rail_Funct(c,sys,CW,CH,U_X,U_Y,Sqx,d,i,o,nump, s,w):
+   
+    # c: related to reportlab. #Sys: the type of System.
+    # CW & CH: Clear Width and Clear Height 
+    # U_x & U_y :  the origin
+    # Sqx: the length of this bitch
+    #d, d: width of panels.  i,o: interior and exterior sheeting. 
+    #nump: number of panels. 
+    #S: Southern?  for #W: Western? 
+    c.setFillColorRGB(1,1,1)
+    sp = d + i + o+ 2.5 # spacing between panels 
+    panw= CW/nump
+    so = 1 
+    we = 1 
+    nprsv= int(nump/2)
+    
+    if sys == "ONEWAY" :
+        LFR = CW *(nump+1)/nump
+        rat = Sqx/LFR # scale, basicallly
+        Sqy =((nump-1)*sp)*rat #width related to the panel   
+        c.setLineWidth(.25)
+        if s == "Northern" : 
+            so = -1 
+            U_Y = U_Y + Sqy 
+        if w == "Eastern" : 
+            we = -1
+            U_X = U_X + Sqx 
+        LROW = math.ceil(2*(CW/nump)/48) #number of angles
+        LROWL= ((2*CW-2 )/LROW/nump) #distance, one angle to the next    
+    
+        for x in range(LROW+1): #AngleS, first set. #NOTE: NEED TO ACCOUNT FOR PICKUP BARS 
+            c.rect((U_X+we*(LROWL*x*rat-2*rat))*inch,(U_Y-2.4375*rat*so)*inch,we*2*rat*inch,so*(Sqy+8*rat)*inch)
+    
+        LROW = math.ceil(CW/nump/48)
+        LROWL= (CW-12)/LROW/nump
+    
+        for x in range(nump-1):      #Angles, the rest of them
+            for y in range(LROW):
+                c.rect((U_X+we*((x+3)*panw-LROWL*y-2)*rat)*inch,(U_Y-2.375*rat*so)*inch,we*2*rat*inch,so*((Sqy+8*rat)-sp*(x+1)*rat)*inch)
+       
+        for x in range(nump):        #rails and dimensions themselves                 
+            c.setFillColorRGB(1,1,1)
+            c.setStrokeColorRGB(0,0,0)
+            c.rect((U_X)*inch,(U_Y+so*(sp*rat*x))*inch,we*(nump+1-x)*panw*rat*inch,so*3.125*rat*inch,fill =1) #Reccy boi    
+    
+    if sys == "BIPARTING":
+        LFR = CW *(nump+2)/nump
+        rat = Sqx/LFR # scale, basicallly
+        Sqy =((nprsv-1)*sp)*rat #width related to the pan
+        c.setLineWidth(.25)
+        if s == "Northern" : 
+            so = -1 
+            U_Y = U_Y + Sqy 
+
+        LROW = math.ceil(2*(CW/nump)/48) #number of angles
+        LROWL= ((2*CW-2)/LROW/nump) #distance, one angle to the next    
+    
+        for x in range(LROW+1): #AngleS, first set. #NOTE: NEED TO ACCOUNT FOR PICKUP BARS 
+            c.rect((U_X+we*(LROWL*x*rat))*inch,(U_Y-2.4375*rat*so)*inch,2*rat*inch,so*(Sqy+8*rat)*inch)
+            c.rect((U_X+Sqx-we*(LROWL*x*rat))*inch,(U_Y-2.4375*rat*so)*inch,-2*rat*inch,so*(Sqy+8*rat)*inch)
+       
+        LROW = math.ceil(CW/nump/48)
+        LROWL= (CW-12)/LROW/nump
+    
+        for x in range(int(nprsv-1)):      #Angles, the rest of them
+           for y in range(LROW):
+              #if y > 0 or x > 0: 
+                c.rect((U_X+((x+3)*panw-LROWL*y-2)*rat+1*rat)*inch,(U_Y-2.375*rat*so)*inch,2*rat*inch,so*((Sqy+8*rat)-sp*(x+1)*rat)*inch)
+                c.rect((U_X+Sqx-((x+3)*panw-LROWL*y-2)*rat-1*rat)*inch,(U_Y-2.375*rat*so)*inch,-2*rat*inch,so*((Sqy+8*rat)-sp*(x+1)*rat)*inch)
+  
+        c.rect(U_X*inch,U_Y*inch,Sqx*inch,so*3.125*rat*inch,fill =1) #Reccy boi 
+
+        for x in range(int(nprsv-1)):        #rails themselves           
+            c.setFillColorRGB(1,1,1)
+            c.setStrokeColorRGB(0,0,0)
+            c.rect(U_X*inch,(U_Y+so*(sp*rat*(x+1)))*inch,(nprsv-x)*panw*rat*inch,so*3.125*rat*inch,fill =1) #Reccy boi    
+            c.rect((U_X+Sqx)*inch,(U_Y+so*sp*rat*(x+1))*inch,-(nprsv-x)*panw*rat*inch,so*3.125*rat*inch,fill =1) #Reccy boi        
+  
+    if sys == "FLOATING":
+        LFR = CW *(nump+2)/nump
+        rat = Sqx/LFR # scale, basicallly
+        Sqy =((nprsv-1)*sp)*rat #width related to the pan
+        c.setLineWidth(.25)
+        
+        LROW = math.ceil(((LFR)/48)) #number of angles
+        LROWL= ((LFR-2)/LROW) #distance, one angle to the next    
+    
+        for x in range(LROW+1): #AngleS, first set. #NOTE: NEED TO ACCOUNT FOR PICKUP BARS 
+            c.rect((U_X+(LROWL*x*rat))*inch,(U_Y-2.4375*rat*so)*inch,2*rat*inch,so*(Sqy+8*rat)*inch)
+
+        for x in range(int(nprsv)):        #rails themselves           
+            c.setFillColorRGB(1,1,1)
+            c.setStrokeColorRGB(0,0,0)
+            c.rect(U_X*inch,(U_Y+so*(sp*rat*(x)))*inch,LFR*rat*inch,so*3.125*rat*inch,fill =1) #Reccy boi    
+    
+    c.setStrokeColorRGB(0,0,0)
+
+def top_track_Funct(c,sys,CW,CH,U_X,U_Y,Sqx,d,i,o,nump, s,w):    #overhead view 
+    # c: related to reportlab. #Sys: the type of System.
+    # CW & CH: Clear Width and Clear Height 
+    # U_x & U_y :  the origin
+    # Sqx: the length of this bitch
+    #d, d: width of panels.  i,o: interior and exterior sheeting. 
+    #nump: number of panels. 
+    #S: Southern?  for #W: Western?     
+    c.setFillColorRGB(1,1,1)
+    sp = d + i + o+ 2.5 # spacing between panels 
+    panw= CW/nump
+    so = 1 
+    we = 1     
+    nprsv= nump/2
+    
+    if sys =="ONEWAY" : # note: southern VS Northern? Left Vs Right?
+        LFR = CW *(nump+1)/nump
+        rat = Sqx/LFR # scale, basically
+        Sqy =((nump-1)*sp)*rat #Y length, on page        
+        hangm = [LFR]
+        if s == "Northern" : 
+            so = -1 
+            U_Y = U_Y + Sqy 
+        if w == "Eastern" : 
+            we = -1
+            U_X = U_X + Sqx 
+       # LROW = math.ceil(2*(CW/nump)/120) #number of angles
+        #print(LROW)
+        #LROWL= ((2*CW-12)/LROW/nump) #distance, one angle to the next    
+        #print(LROWL)
+        #W6 x 9 , rest of them            
+        #c.line(U_X*inch,U_Y*inch,U_X*inch,(U_Y-sp*(nump+1)*rat-.0625)*inch)#dim          
+        #Top Track
+        
+        for x in range(int(nump)): #Top track, tracks themselves  
+            if x != 0: #if not the longest rail, define 
+                hangm = [math.ceil((nump+1-x)*panw/60)*60] + hangm #length of each rail
+                
+            c.rect(U_X*inch,(U_Y+(so*sp*x)*rat)*inch,we*hangm[0]*rat*inch,so*4*rat*inch,fill = 1)#Rail
+   
+        hangm = [0] + hangm #add 0
+        c.setFillColorRGB(1,1,1)
+        c.rect((U_X)*inch,(U_Y-so*10*rat)*inch,we*4*rat*inch,so*(Sqy+20*rat)*inch,fill=1) 
+        c.setFillColorRGB(0,0,0)
+        
+        for y in range(int(nump)):
+            LROW = math.ceil((hangm[nump - y]-hangm[nump-y-1])/120) #number of angles in a given segment
+            LROWL= ((hangm[nump - y]-hangm[nump-y-1])-4)/LROW #distance, one angle to the next        
+            for x in range(int(LROW)):  #AngleS, first set. #NOTE: NEED TO ACCOUNT FOR PICKUP BARS
+                c.setFillColorRGB(1,1,1)   
+                c.rect((U_X+we*(hangm[nump-y]-LROWL*x-4)*rat)*inch,(U_Y-so*10*rat)*inch,we*4*rat*inch,so*(Sqy+20*rat)*inch,fill=1)      
+                c.setFillColorRGB(0,0,0)
+    
+    if sys =="BIPARTING" : # note: southern VS Northern? Left Vs Right?
+        
+        LFR = CW *(nump+2)/nump
+        rat = Sqx/LFR # scale, basically
+        Sqy =((nprsv-1)*sp)*rat #Y length, on page        
+        hangm = [LFR/2]
+        
+        if s == "Northern" : 
+            so = -1 
+            U_Y = U_Y + Sqy 
+        
+        for x in range(int(nprsv)): #Top track, tracks themselves  
+            if x != 0: #if not the longest rail, define 
+                hangm = [math.ceil((nprsv+1-x)*panw/60)*60] + hangm #length of each rail
+            c.rect(U_X*inch,(U_Y+(so*sp*x)*rat)*inch,hangm[0]*rat*inch,so*4*rat*inch,fill = 1)#Rail
+            c.rect((U_X+Sqx)*inch,(U_Y+(so*sp*x)*rat)*inch,-hangm[0]*rat*inch,so*4*rat*inch,fill = 1)#Rail
+
+        hangm = [0] + hangm #add 0
+        c.setFillColorRGB(1,1,1)
+        c.rect((U_X)*inch,(U_Y-so*10*rat)*inch,4*rat*inch,so*(Sqy+20*rat)*inch,fill=1) 
+        c.rect((U_X+Sqx)*inch,(U_Y-so*10*rat)*inch,-4*rat*inch,so*(Sqy+20*rat)*inch,fill=1) 
+        c.setFillColorRGB(0,0,0)
+     
+        for y in range(int(nprsv)):
+           LROW = math.ceil((hangm[int(nprsv) - y]-hangm[int(nprsv)-y-1])/120) #number of angles in a given segment
+           LROWL= ((hangm[int(nprsv) - y]-hangm[int(nprsv)-y-1])-4)/LROW #distance, one angle to the next        
+
+           for x in range(LROW):  #AngleS, first set. #NOTE: NEED TO ACCOUNT FOR PICKUP BARS
+                c.setFillColorRGB(1,1,1)   
+                c.rect((U_X+(hangm[int(nprsv)-y]-LROWL*x-2)*rat)*inch,(U_Y-so*10*rat)*inch,4*rat*inch,so*(Sqy+20*rat)*inch,fill=1)  
+                c.rect((U_X+Sqx-(hangm[int(nprsv)-y]-LROWL*x-2)*rat)*inch,(U_Y-so*10*rat)*inch,-4*rat*inch,so*(Sqy+20*rat)*inch,fill=1) 
+                c.setFillColorRGB(0,0,0)    
+    c.setStrokeColorRGB(0,0,0)
+#______________________________________________________________________________
+chump = "RAIL FUNCTION TEST"
+c = canvas.Canvas(chump + ".pdf",pagesize =(17*inch, 11*inch)) #page format
+
+CW = 31*12 #clear width
+CH = 28*12
+sys = "BIPARTING"
+#sys = "ONEWAY"
+d=10 #width of panels
+i= 1.5 #width of sheeting, int
+o= 1.5 #width of sheeting, ext
+nump = 8 #number of panels
+U_x = 5
+U_y = .5 
+Sqx = 8
+s = "Southern"
+w = "Western"
+
+Rail_Funct(c,sys,CW,CH,U_x,U_y,Sqx,d,i,o,nump,s,w)
+#top_track_Funct(c,sys,CW,CH,U_x,U_y,Sqx,d,i,o,nump, s,w)
+
+#top_track_Funct(c,sys,CW,CH,U_x,U_y+2,Sqx,d,i,o,nump, s,w)
+
+#top_track_Funct(c,sys,CW,CH,U_x,U_y,Sqx,d,i,o,nump,s,w)
+w = "Eastern"
+U_y = 3
+#top_track_Funct(c,sys,CW,CH,U_x,U_y,Sqx,d,i,o,nump,s,w)
+Rail_Funct(c,sys,CW,CH,U_x,U_y,Sqx,d,i,o,nump,s,w)
+#top_track_Funct(c,sys,CW,CH,U_x,U_y,Sqx,d,i,o,nump, s,w)
+
+#top_track_Funct(c,sys,CW,CH,U_x,U_y+2,Sqx,d,i,o,nump, s,w)
+nump = 5
+
+s = "Northern"
+U_y = 5.5
+nump = 4
+Sqx = 7.5
+#top_track_Funct(c,sys,CW,CH,U_x,U_y,Sqx,d,i,o,nump,s,w)
+Rail_Funct(c,sys,CW,CH,U_x,U_y,Sqx,d,i,o,nump,s,w)
+#top_track_Funct(c,sys,CW,CH,U_x,U_y,Sqx,d,i,o,nump, s,w)
+
+
+#top_track_Funct(c,sys,CW,CH,U_x,U_y+2,Sqx,d,i,o,nump, s,w)
+w = "Western"
+
+U_y = 8
+#top_track_Funct(c,sys,CW,CH,U_x,U_y,Sqx,d,i,o,nump,s,w)
+Rail_Funct(c,sys,CW,CH,U_x,U_y,Sqx,d,i,o,nump,s,w)
+#top_track_Funct(c,sys,CW,CH,U_x,U_y+2,Sqx,d,i,o,nump, s,w)
+
+c.showPage() #end
+
+c.save()
+print("done")
